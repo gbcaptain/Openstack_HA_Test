@@ -129,7 +129,7 @@ enabled = 1
 
 # Network Config
 public : 9.110.187.0/24
-admin : 10.1.1.0/24
-private：10.2.2.0/24
+admin : 192.168.56.0/24
+private：192.168.57.0/24
 mapping network port：eno67109408
 
