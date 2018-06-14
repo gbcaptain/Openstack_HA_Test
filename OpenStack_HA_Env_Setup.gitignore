@@ -169,8 +169,351 @@ logging {
 [root@controller1 ~]# pcs property set no-quorum-policy=ignore
 [root@controller1 ~]# crm-verify -L -V
 
-
 - install HAProxy;
+
+[root@controller1 ~]# yum -y install haproxy
+[root@controller1 ~]# systemctl enable haproxy.service
+[root@controller1 ~]# cd /etc/rsyslog.d/
+[root@controller1 ~]# vim haproxy.conf
+$ModLoad imudp
+$UDPServerRun 514
+$template Haproxy,"%msg%n"
+local0.=info -/var/log/haproxy.log;Haproxy
+local0.notice -/var/log/haproxy-status.log;Haproxy
+local0.* ~
+
+[root@controller1 ~]# spc haproxy.conf controller2:/etc/rsyslog.d/haproxy.conf
+[root@controller1 ~]# spc haproxy.conf controller3:/etc/rsyslog.d/haproxy.conf
+
+[root@controller1 ~]# systemctl restart rsyslog.service
+[root@controller1 ~]# systemctl status rsyslog.service
+...
+...
+[root@controller1 ~]# cd /etc/haproxy/
+[root@controller1 ~]# mv haproxy.cfg haproxy.cfg.orig
+[root@controller1 ~]# vim haproxy.cfg 
+#---------------------------------------------------------------------
+# Global settings
+#---------------------------------------------------------------------
+ global
+  log 127.0.0.1 local0
+  log 127.0.0.1 local1 notice
+  maxconn  4096
+  chroot  /var/lib/haproxy
+  daemon
+  group  haproxy
+  user  haproxy
+#---------------------------------------------------------------------
+# common defaults that all the 'listen' and 'backend' sections will 
+# use if not designated in their block
+#---------------------------------------------------------------------
+defaults
+  log  global
+  mode http
+  maxconn  4000
+  option tcplog
+  option dontlognull
+  option  redispatch
+  retries  3
+  contimeout 5000
+  clitimeout 50000
+  srvtimeout 50000
+
+frontend stats-frontend
+    bind *:8088
+    mode http
+    default_backend stats-back
+
+backend stats-back 
+    mode http
+    blance source
+
+#---------------------------------------------------------------------
+# Listen webfarm
+#---------------------------------------------------------------------
+ listen dashboard_cluster
+  bind 9.110.187.128:443
+  balance  source
+  option  tcpka
+  option  httpchk
+  option  tcplog
+  server controller1 10.0.0.12:443 check inter 2000 rise 2 fall 5
+  server controller2 10.0.0.13:443 check inter 2000 rise 2 fall 5
+  server controller3 10.0.0.14:443 check inter 2000 rise 2 fall 5
+
+listen Galera-Cluster
+
+    stats auth admin:password
+
+listen Galera-Cluster
+    bind 9.110.187.128:3306
+    balance leastconn
+    mode tcp
+    option httpchk
+    server controller1  controller1:3306 check port 9200 inter 2000 rise 2 fall 3
+    server controller2  controller2:3306 check port 9200 inter 2000 rise 2 fall 3
+    server controller3  controller3:3306 check port 9200 inter 2000 rise 2 fall 3
+
+listen keystone_admin_cluster
+    bind 9.110.187.128:35357
+    balance source
+    option  tcpka
+    option  httpchk
+    option  tcplog
+    server controller1  controller1:35358 check inter 2000 rise 2 fall 5
+    server controller2  controller2:35358 check inter 2000 rise 2 fall 5
+    server controller3  controller3:35358 check inter 2000 rise 2 fall 5
+
+listen keystone_public_internal_cluster
+    bind 9.110.187.128:5000
+    balance  source
+    option  tcpka
+    option  httpchk
+    option  tcplog
+    server controller1 controller1:5000 check inter 2000 rise 2 fall 5
+    server controller2 controller2:5000 check inter 2000 rise 2 fall 5
+    server controller3 controller3:5000 check inter 2000 rise 2 fall 5
+
+listen dashboard_cluster
+  bind <Virtual IP>:80
+  balance  source
+  option  tcpka
+  option  tcplog
+  option  httpchk
+  server controller1 controller1:8080 check inter 2000 rise 2 fall 5
+  server controller2 controller2:8080 check inter 2000 rise 2 fall 5
+  server controller3 controller3:8080 check inter 2000 rise 2 fall 5
+
+    option  tcpka
+    option  httpchk
+    option  tcplog
+    server controller1  controller1:9774 check inter 2000 rise 2 fall 5
+    server controller2  controller2:9774 check inter 2000 rise 2 fall 5
+    server controller3  controller3:9774 check inter 2000 rise 2 fall 5
+
+listen keystone_admin_cluster
+    bind 9.110.187.128:35357
+    balance source
+    option  tcpka
+    option  httpchk
+    option  tcplog
+    server controller1  controller1:35358 check inter 2000 rise 2 fall 5
+    server controller2  controller2:35358 check inter 2000 rise 2 fall 5
+    server controller3  controller3:35358 check inter 2000 rise 2 fall 5
+
+listen glance_api_cluster
+  bind <Virtual IP>:9292
+  balance  source
+  option  tcpka
+  option  httpchk
+  option  tcplog
+  server controller1 controller1:9292 check inter 2000 rise 2 fall 5
+  server controller2 controller2:9292 check inter 2000 rise 2 fall 5
+  server controller3 controller3:9292 check inter 2000 rise 2 fall 5
+
+listen cinder_api_cluster
+  bind <Virtual IP>:8776
+  balance  source
+  option  tcpka
+  option  httpchk
+  option  tcplog
+  server controller1 controller1:8778 check inter 2000 rise 2 fall 5
+  server controller2 controller2:8778 check inter 2000 rise 2 fall 5
+  server controller3 controller3:8778 check inter 2000 rise 2 fall 5
+
+listen nova_vncproxy_cluster
+  bind <Virtual IP>:6080
+  balance  source
+  option  tcpka
+  option  tcplog
+  server controller1 controller1:6081 check inter 2000 rise 2 fall 5
+  server controller2 controller2:6081 check inter 2000 rise 2 fall 5
+  server controller3 controller3:6081 check inter 2000 rise 2 fall 5
+
+listen neutron_api_cluster
+  bind <Virtual IP>:9696
+  balance  source
+  option  tcpka
+  option  httpchk
+  option  tcplog
+  server controller1 controller1:9697 check inter 2000 rise 2 fall 5
+  server controller2 controller2:9697 check inter 2000 rise 2 fall 5
+  server controller3 controller3:9697 check inter 2000 rise 2 fall 5
+
+[root@controller1 ~]# scp haproxy.cfg controller2:/etc/haproxy/haproxy.cfg
+[root@controller1 ~]# scp haproxy.cfg controller3:/etc/haproxy/haproxy.cfg
+
+[root@controller1 ~]# systemctl start haproxy.service
+[root@controller1 ~]# systemctl status haproxy.service
+[root@controller1 ~]# mysql -uroot -p
+MariaDB [(none)]> grant process on *.* to 'clustercheckuser'@'localhost' identified by 'clustercheckpassword'
+MariaDB [(none)]> flush privileges;
+MariaDB [(none)]> exit
+[root@controller1 ~]# vim /etc/sysconfig/clustercheck
+MYSQL_USERNAME=clustercheckuser
+MYSQL_PASSWORD=clustercheckpassword!
+MYSQL_HOST=localhost
+MYSQL_PORT=3306
+[root@controller1 ~]# scp /etc/sysconfig/clustercheck controller2:/etc/sysconfig/clustercheck
+[root@controller1 ~]# scp /etc/sysconfig/clustercheck controller3:/etc/sysconfig/clustercheck
+[root@controller1 ~]# vim /usr/bin/clustercheck
+#!/bin/bash
+#
+# Script to make a proxy (ie HAProxy) capable of monitoring Percona XtraDB Cluster nodes properly
+#
+# Author: Olaf van Zandwijk <olaf.vanzandwijk@nedap.com>
+# Author: Raghavendra Prabhu <raghavendra.prabhu@percona.com>
+#
+# Documentation and download: https://github.com/olafz/percona-clustercheck
+#
+# Based on the original script from Unai Rodriguez
+#
+
+if [[ $1 == '-h' || $1 == '--help' ]];then
+    echo "Usage: $0 <user> <pass> <available_when_donor=0|1> <log_file> <available_when_readonly=0|1> <defaults_extra_file>"
+    exit
+fi
+
+# if the disabled file is present, return 503. This allows
+# admins to manually remove a node from a cluster easily.
+if [ -e "/var/tmp/clustercheck.disabled" ]; then
+    # Shell return-code is 1
+    echo -en "HTTP/1.1 503 Service Unavailable\r\n"
+    echo -en "Content-Type: text/plain\r\n"
+    echo -en "Connection: close\r\n"
+    echo -en "Content-Length: 51\r\n"
+    echo -en "\r\n"
+    echo -en "Percona XtraDB Cluster Node is manually disabled.\r\n"
+    sleep 0.1
+    exit 1
+fi
+
+set -e
+
+if [ -f /etc/sysconfig/clustercheck ]; then
+        . /etc/sysconfig/clustercheck
+fi
+
+MYSQL_USERNAME="${MYSQL_USERNAME:=-clustercheckuser}"
+MYSQL_PASSWORD="${MYSQL_PASSWORD-clustercheckpassword!}"
+AVAILABLE_WHEN_DONOR=${AVAILABLE_WHEN_DONOR:-0}
+ERR_FILE="${ERR_FILE:-/dev/null}"
+AVAILABLE_WHEN_READONLY=${AVAILABLE_WHEN_READONLY:-1}
+DEFAULTS_EXTRA_FILE=${DEFAULTS_EXTRA_FILE:-/etc/my.cnf}
+
+#Timeout exists for instances where mysqld may be hung
+TIMEOUT=10
+
+EXTRA_ARGS=""
+if [[ -n "$MYSQL_USERNAME" ]]; then
+    EXTRA_ARGS="$EXTRA_ARGS --user=${MYSQL_USERNAME}"
+fi
+if [[ -n "$MYSQL_PASSWORD" ]]; then
+    EXTRA_ARGS="$EXTRA_ARGS --password=${MYSQL_PASSWORD}"
+fi
+if [[ -r $DEFAULTS_EXTRA_FILE ]];then
+    MYSQL_CMDLINE="mysql --defaults-extra-file=$DEFAULTS_EXTRA_FILE -nNE --connect-timeout=$TIMEOUT \
+                    ${EXTRA_ARGS}"
+else
+    MYSQL_CMDLINE="mysql -nNE --connect-timeout=$TIMEOUT ${EXTRA_ARGS}"
+fi
+#
+# Perform the query to check the wsrep_local_state
+#
+WSREP_STATUS=$($MYSQL_CMDLINE -e "SHOW STATUS LIKE 'wsrep_local_state';" \
+    2>${ERR_FILE} | tail -1 2>>${ERR_FILE})
+
+if [[ "${WSREP_STATUS}" == "4" ]] || [[ "${WSREP_STATUS}" == "2" && ${AVAILABLE_WHEN_DONOR} == 1 ]]
+then
+    # Check only when set to 0 to avoid latency in response.
+    if [[ $AVAILABLE_WHEN_READONLY -eq 0 ]];then
+        READ_ONLY=$($MYSQL_CMDLINE -e "SHOW GLOBAL VARIABLES LIKE 'read_only';" \
+                    2>${ERR_FILE} | tail -1 2>>${ERR_FILE})
+
+        if [[ "${READ_ONLY}" == "ON" ]];then
+            # Percona XtraDB Cluster node local state is 'Synced', but it is in
+            # read-only mode. The variable AVAILABLE_WHEN_READONLY is set to 0.
+            # => return HTTP 503
+            # Shell return-code is 1
+            echo -en "HTTP/1.1 503 Service Unavailable\r\n"
+            echo -en "Content-Type: text/plain\r\n"
+            echo -en "Connection: close\r\n"
+            echo -en "Content-Length: 43\r\n"
+            echo -en "\r\n"
+            echo -en "Percona XtraDB Cluster Node is read-only.\r\n"
+            sleep 0.1
+            exit 1
+        fi
+    fi
+    # Percona XtraDB Cluster node local state is 'Synced' => return HTTP 200
+    # Shell return-code is 0
+    echo -en "HTTP/1.1 200 OK\r\n"
+    echo -en "Content-Type: text/plain\r\n"
+    echo -en "Connection: close\r\n"
+    echo -en "Content-Length: 40\r\n"
+    echo -en "\r\n"
+    echo -en "Percona XtraDB Cluster Node is synced.\r\n"
+    sleep 0.1
+    exit 0
+else
+    # Percona XtraDB Cluster node local state is not 'Synced' => return HTTP 503
+    # Shell return-code is 1
+    echo -en "HTTP/1.1 503 Service Unavailable\r\n"
+    echo -en "Content-Type: text/plain\r\n"
+    echo -en "Connection: close\r\n"
+    echo -en "Content-Length: 44\r\n"
+    echo -en "\r\n"
+    echo -en "Percona XtraDB Cluster Node is not synced.\r\n"
+    sleep 0.1
+    exit 1
+fi
+
+[root@controller1 ~]# scp /usr/bin/clustercheck controller2:/usr/bin/clustercheck
+[root@controller1 ~]# scp /usr/bin/clustercheck controller3:/usr/bin/clustercheck
+
+[root@controller1 ~]# chmod +x /usr/bin/clustercheck
+[root@controller1 ~]# clustercheck
+
+[root@controller1 ~]# yum -y install xinetd
+[root@controller1 ~]# vim /etc/xinetd.d/mysqlchk
+service mysqlchk
+{
+# # this is a config for xinetd, place it in /etc/xinetd.d/
+    disable = no
+    flags = REUSE
+    socket_type = stream
+    port = 9200
+    wait = no
+    user = nobody
+    server = /usr/bin/clustercheck
+    log_on_failure += USERID
+    only_from = 0.0.0.0/0
+    # recommended to put the IPs that need 
+    # to connect exclusively (security purposes)
+    per_source = UNLIMITED
+}
+[root@controller1 ~]# scp /etc/xinetd.d/mysqlchk controller2:/etc/xinetd.d/mysqlchk
+[root@controller1 ~]# scp /etc/xinetd.d/mysqlchk controller3:/etc/xinetd.d/mysqlchk
+
+[root@controller1 ~]# vim /etc/services
++
+mysqlchk    9200/tcp    # mysqlchk
++
+...
+...
+[root@controller1 ~]# systemctl restart xinetd.service
+[root@controller1 ~]# systemctl status xinetd.service
+
+[root@controller1 haproxy]# echo 'net.ipv4.ip_nonlocal_bind = 1' >>/etc/sysctl.conf
+[root@controller1 haproxy]# echo 'net.ipv4.ip_forward = 1' >>/etc/sysctl.conf
+[root@controller1 haproxy]# sysctl -p
+...
+...
+
+[root@controller1 ~]# systemctl start haproxy.service
+[root@controller1 ~]# systemctl status haproxy.service
+
+
 - install & config Keystone;
 - install & config glance;
 - install & config nova;
