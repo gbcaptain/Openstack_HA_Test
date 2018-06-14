@@ -103,6 +103,72 @@ enabled = 1
 [root@controller1 ~]# scp ha-clustering.repo controller2:/etc/yum.repos.d/ha-clustering.repo
 [root@controller1 ~]# scp ha-clustering.repo controller3:/etc/yum.repos.d/ha-clustering.repo
 
+[root@controller1 ~]# cd /etc/yum.repos.d/
+[root@controller1 ~]# yum install -y lvm2 cifs-utils quota psmisc
+[root@controller1 ~]# yum install -y pcs pacemaker corosync fence-agents-all resource-agents crmsh lvm2 cifs cifs-utils quota psmisc
+[root@controller1 ~]# systemctl enable pcsd
+[root@controller1 ~]# systemctl enable corosync
+[root@controller1 ~]# systemctl start pcsd
+[root@controller1 ~]# systemctl status pcsd
+[root@controller1 ~]# passwd hacluster
+...
+...
+[root@controller1 ~]# vim /etc/corosync/corosync.conf
+totem {
+    version: 2
+    secauth: off
+    cluster_name: openstack-cluster
+    transport: udpu 
+}
+
+nodelist {
+    node {
+        ring0_addr: controller1
+        nodeid: 1
+    }
+    node {
+        ring0_addr: controller2
+        nodeid: 2
+    }
+    node {
+        ring0_addr: controller3
+        nodeid: 3
+    }
+}
+
+quorum {
+    provider: corosync_votequorum
+}
+
+logging {
+    to_logfile: yes
+    logfile: /var/log/cluster/corosync.log
+    to_syslog: yes
+}
+
+[root@controller1 ~]# scp /etc/corosync/corosync.conf controller2:/etc/corosync/corosync.conf
+[root@controller1 ~]# scp /etc/corosync/corosync.conf controller3:/etc/corosync/corosync.conf
+
+[root@controller1 ~]# ssh-keygen -t rsa 
+...
+...
+[root@controller1 ~]# scp /root/.ssh/id_rsa.pub 9.110.187.121:~/.ssh/authorized_keys
+[root@controller1 ~]# scp /root/.ssh/id_rsa.pub 9.110.187.122:~/.ssh/authorized_keys
+
+[root@controller1 ~]# pcs cluster auth controller1 controller2 controller3 -u hacluster -p password --force
+[root@controller1 ~]# pcs cluster setup --force  --name openstack-cluster controller1 controller2 controller3
+[root@controller1 ~]# pcs cluster enable --all
+[root@controller1 ~]# pcs cluster start --all
+[root@controller1 ~]# pcs cluster status
+[root@controller1 ~]# ps aux | grep pacemaker
+[root@controller1 ~]# corosync-cfgtool -s
+[root@controller1 ~]# corosync-cmapctl | grep members
+[root@controller1 ~]# pcs status corosync
+[root@controller1 ~]# crm-verify -L -V
+[root@controller1 ~]# pcs property set stonith-enabled=false
+[root@controller1 ~]# pcs property set no-quorum-policy=ignore
+[root@controller1 ~]# crm-verify -L -V
+
 
 - install HAProxy;
 - install & config Keystone;
@@ -129,7 +195,7 @@ enabled = 1
 
 # Network Config
 public : 9.110.187.0/24
-admin : 10.1.1.0/24
-private：10.2.2.0/24
+admin : 192.168.56.0/24
+private：192.168.57.0/24
 mapping network port：eno67109408
 
