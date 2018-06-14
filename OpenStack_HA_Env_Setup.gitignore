@@ -14,8 +14,8 @@ baseurl = http://yum.mariadb.org/10.3.7/centos7-amd64/
 enabled = 1
 gpgcheck = 0
 
-[root@controller1 ~]# scp /etc/yum.repos.d/mariadb.repo 9.110.187.121:/etc/yum.repos.d/mariadb.repo 
-[root@controller1 ~]# scp /etc/yum.repos.d/mariadb.repo 9.110.187.122:/etc/yum.repos.d/mariadb.repo
+[root@controller1 ~]# scp /etc/yum.repos.d/mariadb.repo controller2:/etc/yum.repos.d/mariadb.repo 
+[root@controller1 ~]# scp /etc/yum.repos.d/mariadb.repo controller3:/etc/yum.repos.d/mariadb.repo
 
 [root@controller1 ~]# yum clean all
 [root@controller1 ~]# yum makecache
@@ -90,6 +90,18 @@ http://[controller1_public_ip:15672]
 [root@controller1 ~]# rabbitmqctl cluster_status
 
 - install Pacemaker;
+[root@controller1 ~]# cd /etc/yum.repos.d
+[root@controller1 ~]# vim ha-clustering.repo
+[network_ha-clustering_Stable]
+name = Stable High Availability/Clustering packages (CentOS_CentOS-7)
+type = rpm-md 
+baseurl = http://download.opensuse.org/repositories/network:/ha-clustering:/Stable/CentOS_CentOS-7/
+gpgcheck = 1
+gpgkey = http://download.opensuse.org/repositories/network:/ha-clustering:/Stable/CentOS_CentOS-7/repodata/repomd.xml.key
+enabled = 1
+
+[root@controller1 ~]# scp ha-clustering.repo controller2:/etc/yum.repos.d/ha-clustering.repo
+[root@controller1 ~]# scp ha-clustering.repo controller3:/etc/yum.repos.d/ha-clustering.repo
 
 
 - install HAProxy;
