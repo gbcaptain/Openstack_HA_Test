@@ -515,6 +515,178 @@ mysqlchk    9200/tcp    # mysqlchk
 
 
 - install & config Keystone;
+[root@controller1 ~]# mysql -uroot -p
+MariaDB [(none)]> CREATE DATABASE keystone;
+MariaDB [(none)]> GRANT ALL PRIVILEGES ON keystone.* TO 'keystone'@'localhost' IDENTIFIED BY 'passord';
+MariaDB [(none)]> GRANT ALL PRIVILEGES ON keystone.* TO 'keystone'@'%' IDENTIFIED BY 'passord';
+MariaDB [(none)]> exit
+[root@controller1 ~]# yum -y install openstack-keystone httpd mod_wsgi python-openstackclient memcached python-memcached openstack-utils
+[root@controller1 ~]# systemctl enable memcached.service
+[root@controller1 ~]# systemctl start memcached.service
+[root@controller1 ~]# systemctl status memcached.service
+
+[root@controller1 ~]# openssl rand -hex 10
+[root@controller1 ~]# ADMIN_TOKEN=[generated_token]
+[root@controller1 ~]# mv /etc/keystone/keystone.conf /etc/keystone/keystone.conf.bak 
+[root@controller1 ~]# vim /etc/keystone/keystone.conf
+[default]
+verbose =  True
+admin_token = [generated_token]
+bind_host = controller1
+public_bind_host = 192.168.56.120
+admin_bind_host = 192.168.56.120
+
+[database]
+connection = mysql://keystone:password@demon.openstack.com/keystone
+
+[memcache]
+servers = controller1:11211,controller2:11211,controller3:11211
+
+[token]
+caching = True
+provider = keystone.token.providers.uuid.Provider 
+driver = keystone.token.persistence.backends.memcache.Token
+token = keystone.auth.plugins.token.Token
+
+[revoke]
+driver = keystone.contrib.revoke.backends.sql.Revoke
+
+[catalog]
+driver = keystone.identity.backends.sql.Identity
+
+[root@controller1 ~]# chown root:keystone /etc/keystone/keystone.conf
+[root@controller1 ~]# chmod 640 /etc/keystone/keystone.conf
+...+
+...+
+
+[root@controller1 ~]# vim /etc/httpd/conf/httpd.conf
++
+ServerName controller1
+
+Listen 8080
++
+...
+...
+
+[root@controller1 ~]# vim /etc/httpd/conf.d/wsgi-keystone.conf
+Listen 5002
+Listen 35358
+
+<VirtualHost *:5002>
+    WSGIDaemonProcess keystone-public processes=5 threads=1 user=keystone group=keystone display-name=%{GROUP}
+    WSGIProcessGroup keystone-public
+    WSGIScriptAlias / /usr/bin/keystone-wsgi-public
+    WSGIApplicationGroup %{GLOBAL}
+    WSGIPassAuthorization ON
+    ErrorLogFormat "%{cu}t %M"
+    ErrorLog /var/log/httpd/keystone-error.log
+    CustomLog /var/log/httpd/keystone-access.log combined
+
+    <Directory /usr/bin>
+        Require all granted
+    </Directory>
+</VirtualHost>
+
+<VirtualHost *:35358>
+    WSGIDaemonProcess keystone-admin processes=5 threads=1 user=keystone group=keystone display-name=%{GROUP}
+    WSGIProcessGroup keystone-admin
+    WSGIScriptAlias / /usr/bin/keystone-wsgi-admin
+    WSGIApplicationGroup %{GLOBAL}
+    WSGIPassAuthorization ON
+    ErrorLogFormat "%{cu}t %M"
+    ErrorLog /var/log/httpd/keystone-error.log
+    CustomLog /var/log/httpd/keystone-access.log combined
+
+    <Directory /usr/bin>
+        Require all granted
+    </Directory>
+</VirtualHost>
+
+[root@controller1 ~]# scp /etc/httpd/conf.d/wsgi-keystone.conf controller2:/etc/httpd/conf.d/wsgi-keystone.conf
+[root@controller1 ~]# scp /etc/httpd/conf.d/wsgi-keystone.conf controller3:/etc/httpd/conf.d/wsgi-keystone.conf
+
+[root@controller1 ~]# su - /bin/sh -c "keystone-manage db_sync" keystone
+
+[root@controller1 ~]# cd /var/log/keystone/
+[root@controller1 ~]# vim keystone.log
+
+[root@controller1 ~]# mysql -uroot -p
+MariaDB [(none)]> show databases;
+MariaDB [(none)]> exit
+
+[root@controller1 ~]# vim /etc/keystone/keystone.conf
+
+[root@controller1 keystone]# crm
+crm(live)# configure
+crm(live)configure# primitive vip ocf:hearbeat:IPaddr2 params ip=9.110.187.128 cidr_netmask=24 nic=ens160 op start interval=0s timeout=20s op stop interval=0s timeout=20s op monitor interval=30s meta priority=100
+crm(live)configure# show
+crm(live)configure# exit
+
+[root@controller1 keystone]# crm
+crm(live)# status
+crm(live)# exit
+
+[root@controller1 keystone]# ping demo.openstack.com
+[root@controller1 ~]# su - /bin/sh -c "keystone-manage db_sync" keystone
+
+[root@controller1 ~]# mysql -uroot -p
+MariaDB [(none)]> show databases;
+MariaDB [(none)]> use keystone;
+MariaDB [(none)]> show tables;
+MariaDB [(none)]> exit
+
+[root@controller1 ~]# systemctl enable httpd.service
+[root@controller1 ~]# systemctl start httpd.service
+[root@controller1 ~]# systemctl list-unit-files | grep httpd.service
+
+[root@controller1 keystone]# keystone-manage bootstrap \
+            --bootstrap-password password \
+            --bootstrap-username admin \
+            --bootstrap-project-name admin \
+            --bootstrap-role-name admin \
+            --bootstrap-service-name keystone \
+            --bootstrap-region-id RegionOne \
+            --bootstrap-admin-url http://demo.openstack.com:35357 \
+            --bootstrap-public-url http://demo.openstack.com:5000 \
+            --bootstrap-internal-url http://demo.openstack:5000
+[root@controller1 keystone]# openstack project list --os-username admin --os-project-name admin --os-user-domain-id default --os-project-domain-id default --os-identity-api-version 3 --os-auth-url http://demo.openstack.com:5000 --os-password password
+[root@controller1 keystone]# vim /root/admin-openrc
+export OS_USER_DOMAIN_ID=default
+export OS_PROJECT_DOMAIN_ID=default
+export OS_USERNAME=admin
+export OS_PROJECT_NAME=admin
+export OS_PASSWORD=password
+export OS_IDENTITY_API_VERSION=3
+export OS_AUTH_URL=http://demo.openstack.com:5000
+
+[root@controller1 keystone]# source /root/admin-openrc
+[root@controller1 keystone]# openstack endpoint create --region RegionOne identity public http://demo.openstack.com:5000/v3
+[root@controller1 keystone]# openstack endpoint create --region RegionOne identity admin http://demo.openstack.com:35357/v3
+[root@controller1 keystone]# openstack endpoint create --region RegionOne identity internal http://demo.openstack.com:5000/v3
+[root@controller1 keystone]# openstack endpoint create --domain default --description "Service Project" service
+[root@controller1 keystone]# openstack endpoint create --domain default --description "Demo Project" demo
+[root@controller1 keystone]# openstack user create --domain default demo --password password
+[root@controller1 keystone]# openstack role create user
+[root@controller1 keystone]# openstack role add --project demo --user demo user
+[root@controller1 keystone]# unset OS_TOKEN OS_URL 
+[root@controller1 keystone]# openstack --os-auth-url http://9.110.187.128:35357/v3 --os-project-domain-name default --os-user-domain-name default --os-project-name admin --os-username admin token issue --os-password password
+[root@controller1 keystone]# openstack --os-auth-url http://9.110.187.128:5000/v3 --os-project-domain-name default --os-user-domain-name default --os-project-name demo --os-username demo token issue --os-password password
+[root@controller1 keystone]# vim /root/demo-openrc
+export OS_USER_DOMAIN_ID=default
+export OS_PROJECT_DOMAIN_ID=default
+export OS_USERNAME=demo
+export OS_PROJECT_NAME=demo
+export OS_PASSWORD=password
+export OS_IDENTITY_API_VERSION=3
+export OS_AUTH_URL=http://demo.openstack.com:5000
+
+[root@controller1 keystone]# cd ~
+[root@controller1 ~]#scp admin-openrc controller2:/root/admin-openrc
+[root@controller1 ~]#scp admin-openrc controller3:/root/admin-openrc
+[root@controller1 ~]#scp demo-openrc controller2:/root/demo-openrc
+[root@controller1 ~]#scp demo-openrc controller3:/root/demo-openrc
+
+
 - install & config glance;
 - install & config nova;
 - install & config cinder;
