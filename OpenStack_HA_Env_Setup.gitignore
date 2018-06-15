@@ -31,15 +31,15 @@ gpgcheck = 0
 [root@controller1 ~]# vim /etc/my.cnf.d/server.cnf
 [galera]
 wsrep_provider = /usr/lib64/galera/libgalera_smm.so
-wsrep_cluster_address = "gcomm://172.31.20.140,172.31.109.87,172.31.102.187"
+wsrep_cluster_address = "gcomm://192.168.56.120,192.168.56.121,192.168.122"
 wsrep_node_name = controller1
-wsrep_node_address = 172.31.20.140
+wsrep_node_address = 192.168.56.120
 wsrep_on = ON
 binlog_format = ROW
 max_connections = 10000
 default_storage_engine = InnoDB
 innodb_autoinc_lock_mode = 2
-bind-address = 172.31.20.140
+bind-address = 192.168.56.120
 wsrep_slave_threads = 1
 innodb_flush_log_at_trx_commit = 0
 innodb_buffer_pool_size = 122M
@@ -697,14 +697,14 @@ export OS_AUTH_URL=http://demo.openstack.com:5000
 
 # Virt Env list
 3 x Controller Nodes (8G, 300GB - )
-    10.1.1.120 controller1 controller1.test.com                                 9.110.187.4
-    10.1.1.121 controller2 controller2.test.com                                 9.110.187.5
-    10.1.1.122 controller3 controller3.test.com                                 9.110.187.6
+    192.168.56.120 controller1 controller1.test.com                                 9.110.187.4
+    192.168.56.121 controller2 controller2.test.com                                 9.110.187.5
+    192.168.56.122 controller3 controller3.test.com                                 9.110.187.6
 2 x Compute Nodes (16G, 300GB - )
-    10.1.1.133 compute1 compute1.test.com
-    10.1.1.134 compute2 compute2.test.com (glance-backend backend.test.com)
+    192.168.56.133 compute1 compute1.test.com
+    192.168.56.134 compute2 compute2.test.com (glance-backend backend.test.com)
 1 x Cinder Node (8G 400GB -)
-    10.1.1.135 cinder1 cinder1.test.com
+    192.168.56.135 cinder1 cinder1.test.com
 
 9.110.187.128 demo.openstack.com
 
