@@ -61,6 +61,15 @@ LimitNPROC = 10000
 [ISSUE] - mariadb failed to start, 'rsync' not found in PATH 
 [FIX]: change SELinux from "enforcing" to "permissive" in /etc/sysconfig/SELinux
 
+[root@controller2 ~]# systemctl status mariadb.service
+...
+[root@controller2 ~]# mysql -uroot -p
+ MariaDB [(none)]> show status like 'wsrep%';
+ MariaDB [(none)]> show databases;
+ MariaDB [(none)]> CREATE DATABASE test;
+
+
+
 - install RabbitMQ Cluster;
 [root@controller1 ~]# yum install -y erlang
 [root@controller1 ~]# yum install -y rabbitmq-server
