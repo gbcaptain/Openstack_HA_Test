@@ -692,13 +692,113 @@ export OS_IDENTITY_API_VERSION=3
 export OS_AUTH_URL=http://demo.openstack.com:5000
 
 [root@controller1 keystone]# cd ~
-[root@controller1 ~]#scp admin-openrc controller2:/root/admin-openrc
-[root@controller1 ~]#scp admin-openrc controller3:/root/admin-openrc
-[root@controller1 ~]#scp demo-openrc controller2:/root/demo-openrc
-[root@controller1 ~]#scp demo-openrc controller3:/root/demo-openrc
-
+[root@controller1 ~]# scp admin-openrc controller2:/root/admin-openrc
+[root@controller1 ~]# scp admin-openrc controller3:/root/admin-openrc
+[root@controller1 ~]# scp demo-openrc controller2:/root/demo-openrc
+[root@controller1 ~]# scp demo-openrc controller3:/root/demo-openrc
 
 - install & config glance;
+[root@controller1 ~]# mysql -uroot -p
+MariaDB [(none)]> CREATE DATABASE glance;
+MariaDB [(none)]> GRANT ALL PRIVILEGES ON glance.* TO 'glance'@'localhost' IDENTIFIED BY 'password';
+MariaDB [(none)]> GRANT ALL PRIVILEGES ON glance.* TO 'glance'@'%' IDENTIFIED BY 'password';
+MariaDB [(none)]> exit
+[root@controller1 ~]# source /root/admin-openrc
+[root@controller1 ~]# openstack user create --domain default glance --password password
+[root@controller1 ~]# openstack role add --project service --user glance admin
+[root@controller1 ~]# openstack service create --name glance --description "Openstack Image service" image
+[root@controller1 ~]# openstack endpoint create --region RegionOne image public http://demo.openstack.com:9292 
+[root@controller1 ~]# openstack endpoint create --region RegionOne image internal http://demo.openstack.com:9292 
+[root@controller1 ~]# openstack endpoint create --region RegionOne image admin http://demo.openstack.com:9292 
+
+[root@controller1 ~]# yum install openstack-glance python-glance python-glanceclient -y
+...
+...
+[root@controller1 rsyslog.d]# >/etc/glance/glance-api.conf
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-api.conf DEFAULT show_image_direct_url false
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-api.conf DEFAULT debug True
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-api.conf DEFAULT verbose True
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-api.conf DEFAULT bind_host controller1
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-api.conf DEFAULT bind_port 9393
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-api.conf DEFAULT registry_host controller1
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-api.conf DEFAULT registry_port 9191
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-api.conf DEFAULT auth_region RegionOne
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-api.conf DEFAULT registry_client_protocol http
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-api.conf DEFAULT show_image_direct_url false
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-api.conf DEFAULT worker 4
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-api.conf DEFAULT imag_cache_dir /var/lib/glance/image-cache
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-api.conf DEFAULT rpc_backend rabbit
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-api.conf DEFAULT delayed_delete false
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-api.conf oslo_messaging_rabbit rabbit_host 9.110.187.128
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-api.conf oslo_messaging_rabbit rabbit_port 5672
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-api.conf oslo_messaging_rabbit rabbit_userid openstack
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-api.conf oslo_messaging_rabbit rabbit_password password
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-api.conf oslo_messaging_rabbit rabbit_use_ssl false
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-api.conf oslo_messaging_rabbit rabbit_ha_queues True
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-api.conf oslo_messaging_rabbit rabbit_retry_interval 1
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-api.conf oslo_messaging_rabbit rabbit_retry_backoff 2
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-api.conf oslo_messaging_rabbit rabbit_max_retries 0
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-api.conf oslo_messaging_rabbit amqp_durable_queues false
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-api.conf database connection mysql+pymysql://glance:password@demo.openstack.com/glance
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-api.conf database idle_timeout 3600
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-api.conf database max_pool_size 30
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-api.conf database max_retries -1
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-api.conf database max_overflow 60
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-api.conf keystone_authtoken auth_uri http://demo.openstack.com:5000
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-api.conf keystone_authtoken auth_url http://demo.openstack.com:35357
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-api.conf keystone_authtoken memcached_servers controller1:11211,controller2:11211,controller3:11211
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-api.conf keystone_authtoken auth_type password
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-api.conf keystone_authtoken project_domain_name default
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-api.conf keystone_authtoken user_domain_name default
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-api.conf keystone_authtoken username glance
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-api.conf keystone_authtoken password password
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-api.conf keystone_authtoken project_name service
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-api.conf keystone_authtoken token_cache_time -1
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-api.conf paste_deploy flavor keystone
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-api.conf glance_store stores file,http
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-api.conf glance_store default_store file
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-api.conf glance_store filesystem_store_datadir /var/lib/glance/images/
+[root@controller1 ~]# vim /etc/glance/glance-api.conf
+...+
+...+
+
+[root@controller1 rsyslog.d]# >/etc/glance/glance-api.conf
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-registry.conf DEFAULT debug True
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-registry.conf DEFAULT verbose True
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-registry.conf DEFAULT bind_host controller1
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-registry.conf DEFAULT bind_port 9191
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-registry.conf DEFAULT worker 4
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-registry.conf oslo_messaging_rabbit rabbit_host 9.110.187.128
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-registry.conf oslo_messaging_rabbit rabbit_port 5672
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-registry.conf oslo_messaging_rabbit rabbit_userid openstack
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-registry.conf oslo_messaging_rabbit rabbit_password password
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-registry.conf oslo_messaging_rabbit rabbit_use_ssl false
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-registry.conf oslo_messaging_rabbit rabbit_ha_queues True
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-registry.conf oslo_messaging_rabbit rabbit_retry_interval 1
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-registry.conf oslo_messaging_rabbit rabbit_retry_backoff 2
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-registry.conf oslo_messaging_rabbit rabbit_max_retries 0
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-registry.conf oslo_messaging_rabbit amqp_durable_queues false
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-registry.conf database connection mysql+pymysql://glance:password@demo.openstack.com/glance
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-registry.conf database idle_timeout 3600
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-registry.conf database max_pool_size 30
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-registry.conf database max_retries -1
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-registry.conf keystone_authtoken auth_uri http://demo.openstack.com:5000
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-registry.conf keystone_authtoken auth_url http://demo.openstack.com:35357
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-registry.conf keystone_authtoken memcached_servers controller1:11211,controller2:11211,controller3:11211
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-registry.conf keystone_authtoken auth_type password
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-registry.conf keystone_authtoken project_domain_name default
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-registry.conf keystone_authtoken user_domain_name default
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-registry.conf keystone_authtoken username glance
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-registry.conf keystone_authtoken password password
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-registry.conf keystone_authtoken project_name service
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-registry.conf paste_deploy flavor keystone
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-registry.conf glance_store filesystem_store_datadir /var/lib/glance/images/
+[root@controller1 ~]# openstack-config --set /etc/glance/glance-registry.conf glance_store os_region_name RegionOne
+[root@controller1 ~]# vim /etc/glance/glance-registry.conf
+...+
+...+
+
+
 - install & config nova;
 - install & config cinder;
 - install & config neutron;
