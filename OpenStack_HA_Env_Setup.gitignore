@@ -697,9 +697,9 @@ export OS_AUTH_URL=http://demo.openstack.com:5000
 
 # Virt Env list
 3 x Controller Nodes (8G, 300GB - )
-    10.1.1.120 controller1 controller1.test.com                                 9.110.187.120
-    10.1.1.121 controller2 controller2.test.com                                 9.110.187.121
-    10.1.1.122 controller3 controller3.test.com                                 9.110.187.122
+    10.1.1.120 controller1 controller1.test.com                                 9.110.187.4
+    10.1.1.121 controller2 controller2.test.com                                 9.110.187.5
+    10.1.1.122 controller3 controller3.test.com                                 9.110.187.6
 2 x Compute Nodes (16G, 300GB - )
     10.1.1.133 compute1 compute1.test.com
     10.1.1.134 compute2 compute2.test.com (glance-backend backend.test.com)
