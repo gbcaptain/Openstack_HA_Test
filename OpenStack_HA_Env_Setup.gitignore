@@ -31,7 +31,7 @@ gpgcheck = 0
 [root@controller1 ~]# vim /etc/my.cnf.d/server.cnf
 [galera]
 wsrep_provider = /usr/lib64/galera/libgalera_smm.so
-wsrep_cluster_address = "gcomm://192.168.56.120,192.168.56.121,192.168.122"
+wsrep_cluster_address = "gcomm://192.168.56.120,192.168.56.121,192.168.56.122"
 wsrep_node_name = controller1
 wsrep_node_address = 192.168.56.120
 wsrep_on = ON
@@ -58,6 +58,8 @@ LimitNPROC = 10000
 
 [root@controller2 ~]# systemctl start mariadb.service
 ...
+[ISSUE] - mariadb failed to start, 'rsync' not found in PATH 
+[FIX]: change SELinux from "enforcing" to "permissive" in /etc/sysconfig/SELinux
 
 - install RabbitMQ Cluster;
 [root@controller1 ~]# yum install -y erlang
