@@ -277,10 +277,6 @@ listen dashboard_cluster
   server controller3 controller3:443 check inter 2000 rise 2 fall 5
 
 listen Galera-Cluster
-
-    stats auth admin:password
-
-listen Galera-Cluster
     bind 192.168.56.128:3306
     balance leastconn
     mode tcp
