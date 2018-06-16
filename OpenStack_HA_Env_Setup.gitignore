@@ -71,6 +71,7 @@ LimitNPROC = 10000
 
 
 - install RabbitMQ Cluster;
+[root@controller1 ~]# yum install -y epel-release
 [root@controller1 ~]# yum install -y erlang
 [root@controller1 ~]# yum install -y rabbitmq-server
 [root@controller1 ~]# systemctl enable rabbitmq-server.service
