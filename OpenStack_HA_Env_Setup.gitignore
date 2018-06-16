@@ -209,14 +209,14 @@ local0.* ~
 #---------------------------------------------------------------------
 # Global settings
 #---------------------------------------------------------------------
- global
+global
   log 127.0.0.1 local0
   log 127.0.0.1 local1 notice
   maxconn  4096
-  chroot  /var/lib/haproxy
-  daemon
-  group  haproxy
+  chroot  /var/share/haproxy
   user  haproxy
+  group  haproxy
+  daemon
 #---------------------------------------------------------------------
 # common defaults that all the 'listen' and 'backend' sections will 
 # use if not designated in their block
@@ -241,11 +241,32 @@ frontend stats-frontend
 backend stats-back 
     mode http
     blance source
+    stats uri /haproxy/stats
+    stats auth admin:password
 
 #---------------------------------------------------------------------
 # Listen webfarm
 #---------------------------------------------------------------------
- listen dashboard_cluster
+listen RabbitMQ-Server-Cluster
+    bind 9.110.187.128:56720
+    mode tcp
+    balance roundrobin
+    option tcpka
+    server controller1 controller1:5672 check inter 5s rise 2 fall 3
+    server controller2 controller2:5672 check inter 5s rise 2 fall 3
+    server controller3 controller3:5672 check inter 5s rise 2 fall 3
+
+listen RabbitMQ-Web
+    bind 9.110.187.128:15673
+    mode tcp
+    balance roundrobin
+    option tcpka
+    server controller1 controller1:15672 check inter 5s rise 2 fall 3
+    server controller2 controller2:15672 check inter 5s rise 2 fall 3
+    server controller3 controller3:15672 check inter 5s rise 2 fall 3
+
+
+listen dashboard_cluster
   bind 192.168.56.128:443
   balance  source
   option  tcpka
@@ -353,7 +374,7 @@ listen neutron_api_cluster
 [root@controller1 ~]# systemctl start haproxy.service
 [root@controller1 ~]# systemctl status haproxy.service
 [root@controller1 ~]# mysql -uroot -p
-MariaDB [(none)]> grant process on *.* to 'clustercheckuser'@'localhost' identified by 'clustercheckpassword'
+MariaDB [(none)]> grant process on *.* to 'clustercheckuser'@'localhost' identified by 'clustercheckpassword';
 MariaDB [(none)]> flush privileges;
 MariaDB [(none)]> exit
 [root@controller1 ~]# vim /etc/sysconfig/clustercheck
