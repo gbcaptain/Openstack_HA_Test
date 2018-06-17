@@ -213,7 +213,7 @@ global
   log 127.0.0.1 local0
   log 127.0.0.1 local1 notice
   maxconn  4096
-  chroot  /var/share/haproxy
+  chroot  /usr/share/haproxy
   user  haproxy
   group  haproxy
   daemon
@@ -240,7 +240,7 @@ frontend stats-frontend
 
 backend stats-back 
     mode http
-    blance source
+    balance source
     stats uri /haproxy/stats
     stats auth admin:password
 
@@ -265,17 +265,6 @@ listen RabbitMQ-Web
     server controller2 controller2:15672 check inter 5s rise 2 fall 3
     server controller3 controller3:15672 check inter 5s rise 2 fall 3
 
-
-listen dashboard_cluster
-  bind 192.168.56.128:443
-  balance  source
-  option  tcpka
-  option  httpchk
-  option  tcplog
-  server controller1 controller1:443 check inter 2000 rise 2 fall 5
-  server controller2 controller2:443 check inter 2000 rise 2 fall 5
-  server controller3 controller3:443 check inter 2000 rise 2 fall 5
-
 listen Galera-Cluster
     bind 192.168.56.128:3306
     balance leastconn
@@ -284,16 +273,6 @@ listen Galera-Cluster
     server controller1  controller1:3306 check port 9200 inter 2000 rise 2 fall 3
     server controller2  controller2:3306 check port 9200 inter 2000 rise 2 fall 3
     server controller3  controller3:3306 check port 9200 inter 2000 rise 2 fall 3
-
-listen keystone_admin_cluster
-    bind 192.168.56.128:35357
-    balance source
-    option  tcpka
-    option  httpchk
-    option  tcplog
-    server controller1  controller1:35358 check inter 2000 rise 2 fall 5
-    server controller2  controller2:35358 check inter 2000 rise 2 fall 5
-    server controller3  controller3:35358 check inter 2000 rise 2 fall 5
 
 listen keystone_public_internal_cluster
     bind 192.168.56.128:5000
