@@ -689,6 +689,7 @@ export OS_AUTH_URL=http://demo.openstack.com:5000
 [root@controller1 ~]# scp demo-openrc controller2:/root/demo-openrc
 [root@controller1 ~]# scp demo-openrc controller3:/root/demo-openrc
 
+
 - install & config glance;
 [root@controller1 ~]# mysql -uroot -p
 MariaDB [(none)]> CREATE DATABASE glance;
@@ -754,7 +755,7 @@ MariaDB [(none)]> exit
 ...+
 ...+
 
-[root@controller1 rsyslog.d]# >/etc/glance/glance-api.conf
+[root@controller1 rsyslog.d]# >/etc/glance/glance-registry.conf
 [root@controller1 ~]# openstack-config --set /etc/glance/glance-registry.conf DEFAULT debug True
 [root@controller1 ~]# openstack-config --set /etc/glance/glance-registry.conf DEFAULT verbose True
 [root@controller1 ~]# openstack-config --set /etc/glance/glance-registry.conf DEFAULT bind_host controller1
@@ -790,8 +791,30 @@ MariaDB [(none)]> exit
 ...+
 ...+
 
+[root@controller1 ~]# su -s /bin/sh -c "glance-manage db_sync" glance 
+[root@controller1 ~]# mysql -uroot -p
+MariaDB [(none)]> show databases;
+MariaDB [(none)]> use glance;
+MariaDB [(none)]> show tables;
+MariaDB [(none)]> exit
+
+[root@controller1 ~]# systemctl enable openstack-glance-api.service openstack-glance-registry.service
+[root@controller1 ~]# systemctl restart openstack-glance-api.service openstack-glance-registry.service
+[root@controller1 ~]# systemctl status openstack-glance-api.service openstack-glance-registry.service
+...
+...
+[root@controller1 ~]# echo " " >> /root/admin-openrc && \
+...
+...
+[root@controller1 ~]# wget http://download.cirros-cloud.net/0.3.4/cirros-0.3.4-x86_64-disk.img
+[root@controller1 ~]# source /root/admin-openrc
+[root@controller1 ~]# glance image-create --name "cirros-0.3.4-x86_64" --file cirros-0.3.4-x86_64-disk.img --disk-format qcow2 --container-format bare --visibility public --progress
+[root@controller1 ~]# glance image-list
+[root@controller2 ~]# glance image-list
+
 
 - install & config nova;
+
 - install & config cinder;
 - install & config neutron;
 - install Dashboard;
