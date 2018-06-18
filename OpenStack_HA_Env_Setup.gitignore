@@ -520,8 +520,8 @@ mysqlchk    9200/tcp    # mysqlchk
 - install & config Keystone;
 [root@controller1 ~]# mysql -uroot -p
 MariaDB [(none)]> CREATE DATABASE keystone;
-MariaDB [(none)]> GRANT ALL PRIVILEGES ON keystone.* TO 'keystone'@'localhost' IDENTIFIED BY 'passord';
-MariaDB [(none)]> GRANT ALL PRIVILEGES ON keystone.* TO 'keystone'@'%' IDENTIFIED BY 'passord';
+MariaDB [(none)]> GRANT ALL PRIVILEGES ON keystone.* TO 'keystone'@'localhost' IDENTIFIED BY 'password';
+MariaDB [(none)]> GRANT ALL PRIVILEGES ON keystone.* TO 'keystone'@'%' IDENTIFIED BY 'password';
 MariaDB [(none)]> exit
 [root@controller1 ~]# yum -y install openstack-keystone httpd mod_wsgi python-openstackclient memcached python-memcached openstack-utils
 [root@controller1 ~]# systemctl enable memcached.service
@@ -814,6 +814,96 @@ MariaDB [(none)]> exit
 
 
 - install & config nova;
+[root@controller1 ~]# mysql -uroot -p
+MariaDB [(none)]> CREATE DATABASE nova;
+MariaDB [(none)]> CREATE DATABASE nova_api;
+MariaDB [(none)]> GRANT ALL PRIVILEGES ON nova.* TO 'nova'@'localhost' IDENTIFIED BY 'password';
+MariaDB [(none)]> GRANT ALL PRIVILEGES ON nova.* TO 'nova'@'%' IDENTIFIED BY 'password';
+MariaDB [(none)]> GRANT ALL PRIVILEGES ON nova_api.* TO 'nova'@'localhost' IDENTIFIED BY 'password';
+MariaDB [(none)]> GRANT ALL PRIVILEGES ON nova_api.* TO 'nova'@'%' IDENTIFIED BY 'password';
+MariaDB [(none)]> exit
+[root@controller1 ~]# source /root/admin-openrc
+[root@controller1 ~]# openstack user create --domain default nova -password password
+[root@controller1 ~]# openstack role add --project service --user nova admin
+[root@controller1 ~]# openstack service create --name nova --description "Openstack Compute" compute
+[root@controller1 ~]# openstack endpoint create --region RegionOne compute public http://demo.openstack.com:8774/v2.1/%\(tenant_id\)s
+[root@controller1 ~]# openstack endpoint create --region RegionOne compute internal http://demo.openstack.com:8774/v2.1/%\(tenant_id\)s
+[root@controller1 ~]# openstack endpoint create --region RegionOne compute admin http://demo.openstack.com:8774/v2.1/%\(tenant_id\)s
+
+[root@controller1 ~]# yum install -y openstack-nova-api openstack-nova-cert openstack-nova-conductor openstack-nova-console openstack-nova-novncproxy openstack-nova-scheduler
+...
+...
+
+[root@controller1 ~]# >/etc/nova/nova.conf
+[root@controller1 ~]# openstack-config --set /etc/nova/nova.conf DEFAULT debug false
+[root@controller1 ~]# openstack-config --set /etc/nova/nova.conf DEFAULT verbose True
+[root@controller1 ~]# openstack-config --set /etc/nova/nova.conf DEFAULT enabled_apis osapi_compute,metadata
+[root@controller1 ~]# openstack-config --set /etc/nova/nova.conf DEFAULT osapi_compute_listen_port 9774
+[root@controller1 ~]# openstack-config --set /etc/nova/nova.conf DEFAULT sapi_compute_listen_port 9774
+[root@controller1 ~]# openstack-config --set /etc/nova/nova.conf DEFAULT my_ip 192.168.56.120
+[root@controller1 ~]# openstack-config --set /etc/nova/nova.conf DEFAULT use_neutron True
+[root@controller1 ~]# openstack-config --set /etc/nova/nova.conf DEFAULT firewall_driver nova.virt.firewall.NoopFirewallDriver
+[root@controller1 ~]# openstack-config --set /etc/nova/nova.conf DEFAULT rpc_backend rabbit
+[root@controller1 ~]# openstack-config --set /etc/nova/nova.conf DEFAULT auth_strategy keystone
+[root@controller1 ~]# openstack-config --set /etc/nova/nova.conf database connection mysql+pymysql://nova:password@demo.openstack.com/nova
+[root@controller1 ~]# openstack-config --set /etc/nova/nova.conf database idel_timeout 3600
+[root@controller1 ~]# openstack-config --set /etc/nova/nova.conf database max_pool_size 30
+[root@controller1 ~]# openstack-config --set /etc/nova/nova.conf database max_retries -1
+[root@controller1 ~]# openstack-config --set /etc/nova/nova.conf api_database connection mysql+pymysql://nova:password@demo.openstack.com/nova_api
+[root@controller1 ~]# openstack-config --set /etc/nova/nova.conf oslo_messaging_rabbit rabbit_host 192.168.56.120
+[root@controller1 ~]# openstack-config --set /etc/nova/nova.conf oslo_messaging_rabbit rabbit_port 5672
+[root@controller1 ~]# openstack-config --set /etc/nova/nova.conf oslo_messaging_rabbit rabbit_userid openstack
+[root@controller1 ~]# openstack-config --set /etc/nova/nova.conf oslo_messaging_rabbit rabbit_password password
+[root@controller1 ~]# openstack-config --set /etc/nova/nova.conf oslo_messaging_rabbit rabbit_use_ssl false
+[root@controller1 ~]# openstack-config --set /etc/nova/nova.conf oslo_messaging_rabbit rabbit_ha_queues True
+[root@controller1 ~]# openstack-config --set /etc/nova/nova.conf oslo_messaging_rabbit rabbit_retry_interval 1
+[root@controller1 ~]# openstack-config --set /etc/nova/nova.conf oslo_messaging_rabbit rabbit_retry_backoff 2
+[root@controller1 ~]# openstack-config --set /etc/nova/nova.conf oslo_messaging_rabbit rabbit_max_retries 0
+[root@controller1 ~]# openstack-config --set /etc/nova/nova.conf oslo_messaging_rabbit amqp_durable_queues false
+[root@controller1 ~]# openstack-config --set /etc/nova/nova.conf oslo_concurrency lock_path /var/lib/nova/tmp
+[root@controller1 ~]# openstack-config --set /etc/nova/nova.conf cache backend oslo_cache.memcache_pool
+[root@controller1 ~]# openstack-config --set /etc/nova/nova.conf cache enabled True
+[root@controller1 ~]# openstack-config --set /etc/nova/nova.conf cache memcached_servers controller1:11211,controller2:11211,controller3:11211
+[root@controller1 ~]# openstack-config --set /etc/nova/nova.conf keystone_authtoken auth_uri http://demo.openstack.com:5000
+[root@controller1 ~]# openstack-config --set /etc/nova/nova.conf keystone_authtoken auth_url http://demo.openstack.com:35357
+[root@controller1 ~]# openstack-config --set /etc/nova/nova.conf keystone_authtoken memcached_servers controller1:11211,controller2:11211,controller3:11211
+[root@controller1 ~]# openstack-config --set /etc/nova/nova.conf keystone_authtoken auth_type password
+[root@controller1 ~]# openstack-config --set /etc/nova/nova.conf keystone_authtoken project_domain_name default
+[root@controller1 ~]# openstack-config --set /etc/nova/nova.conf keystone_authtoken user_domain_name default
+[root@controller1 ~]# openstack-config --set /etc/nova/nova.conf keystone_authtoken project_name service
+[root@controller1 ~]# openstack-config --set /etc/nova/nova.conf keystone_authtoken username nova
+[root@controller1 ~]# openstack-config --set /etc/nova/nova.conf keystone_authtoken password password
+[root@controller1 ~]# openstack-config --set /etc/nova/nova.conf glance api_servers http://demo.openstack.com:9292
+[root@controller1 ~]# openstack-config --set /etc/nova/nova.conf conductor use_local false
+[root@controller1 ~]# openstack-config --set /etc/nova/nova.conf conductor workers 8
+[root@controller1 ~]# openstack-config --set /etc/nova/nova.conf vnc enabled True
+[root@controller1 ~]# openstack-config --set /etc/nova/nova.conf vnc vncserver_listen 192.168.56.120
+[root@controller1 ~]# openstack-config --set /etc/nova/nova.conf vnc vncserver_proxyclient_address 192.168.56.120
+[root@controller1 ~]# openstack-config --set /etc/nova/nova.conf vnc novncproxy_base_url http://9.110.187.128:6080/vnc_auto.html
+[root@controller1 ~]# openstack-config --set /etc/nova/nova.conf vnc novncproxy_port 6081
+[root@controller1 ~]# vim /etc/nova/nova.conf
++...+
++...+
+
+[root@controller1 ~]# su -s /bin/sh -c "nova-manage api_db" nova 
+[root@controller1 ~]# su -s /bin/sh -c "nova-manage db sync" nova
+[root@controller1 ~]# mysql -uroot -p
+MariaDB [(none)]> use nova;
+MariaDB [(none)]> show tables;
+MariaDB [(none)]> exit
+
+[root@controller1 ~]# systemctl enable openstack-nova-api.service openstack-nova-cert.server openstack-nova-consoleauth.service openstack-nova-scheduler.service openstack-nova-conductor.service openstack-nova-novncproxy.service
+[root@controller1 ~]# systemctl restart openstack-nova-api.service openstack-nova-cert.server openstack-nova-consoleauth.service openstack-nova-scheduler.service openstack-nova-conductor.service openstack-nova-novncproxy.service
+[root@controller1 ~]# systemctl status openstack-nova-api.service openstack-nova-cert.server openstack-nova-consoleauth.service openstack-nova-scheduler.service openstack-nova-conductor.service openstack-nova-novncproxy.service
+...
+...
+
+[root@controller1 ~]# source /root/admin-openrc
+[root@controller1 ~]# nova service-list
+[root@controller1 ~]# nova endpoints
+[root@controller1 ~]#  
+
+
 
 - install & config cinder;
 - install & config neutron;
