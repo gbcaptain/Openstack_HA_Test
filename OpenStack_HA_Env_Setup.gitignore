@@ -892,20 +892,153 @@ MariaDB [(none)]> use nova;
 MariaDB [(none)]> show tables;
 MariaDB [(none)]> exit
 
-[root@controller1 ~]# systemctl enable openstack-nova-api.service openstack-nova-cert.server openstack-nova-consoleauth.service openstack-nova-scheduler.service openstack-nova-conductor.service openstack-nova-novncproxy.service
-[root@controller1 ~]# systemctl restart openstack-nova-api.service openstack-nova-cert.server openstack-nova-consoleauth.service openstack-nova-scheduler.service openstack-nova-conductor.service openstack-nova-novncproxy.service
-[root@controller1 ~]# systemctl status openstack-nova-api.service openstack-nova-cert.server openstack-nova-consoleauth.service openstack-nova-scheduler.service openstack-nova-conductor.service openstack-nova-novncproxy.service
+[root@controller1 ~]# systemctl enable openstack-nova-api.service openstack-nova-cert.service openstack-nova-consoleauth.service openstack-nova-scheduler.service openstack-nova-conductor.service openstack-nova-novncproxy.service
+[root@controller1 ~]# systemctl restart openstack-nova-api.service openstack-nova-cert.service openstack-nova-consoleauth.service openstack-nova-scheduler.service openstack-nova-conductor.service openstack-nova-novncproxy.service
+[root@controller1 ~]# systemctl status openstack-nova-api.service openstack-nova-cert.service openstack-nova-consoleauth.service openstack-nova-scheduler.service openstack-nova-conductor.service openstack-nova-novncproxy.service
 ...
 ...
 
 [root@controller1 ~]# source /root/admin-openrc
 [root@controller1 ~]# nova service-list
 [root@controller1 ~]# nova endpoints
-[root@controller1 ~]#  
-
 
 
 - install & config cinder;
+[root@controller1 ~]#  mysql -uroot -p
+MariaDB [(none)]> CREATE DATABASE cinder;
+MariaDB [(none)]> GRANT ALL PRIVILEGES ON cinder.* TO 'cinder'@'localhost' IDENTIFIED BY 'password';
+MariaDB [(none)]> GRANT ALL PRIVILEGES ON cinder.* TO 'cinder'@'%' IDENTIFIED BY 'password';
+MariaDB [(none)]> exit
+[root@controller1 ~]# source /root/admin-openrc
+[root@controller1 ~]# openstack user create --domain default cinder -password password
+[root@controller1 ~]# openstack role add --project service --user cinder admin
+[root@controller1 ~]# openstack service create --name cinder --description "Openstack Block Storage" volume
+[root@controller1 ~]# openstack service create --name cinderv2 --description "Openstack Block Storage" volumev2
+[root@controller1 ~]# openstack endpoint create --region RegionOne volume public http://demo.openstack.com:8776/v1/%\(tenant_id\)s
+[root@controller1 ~]# openstack endpoint create --region RegionOne volume internal http://demo.openstack.com:8776/v1/%\(tenant_id\)s
+[root@controller1 ~]# openstack endpoint create --region RegionOne volume admin http://demo.openstack.com:8776/v1/%\(tenant_id\)s
+[root@controller1 ~]# openstack endpoint create --region RegionOne volumev2 public http://demo.openstack.com:8776/v2/%\(tenant_id\)s
+[root@controller1 ~]# openstack endpoint create --region RegionOne volumev2 internal http://demo.openstack.com:8776/v2/%\(tenant_id\)s
+[root@controller1 ~]# openstack endpoint create --region RegionOne volumev2 admin http://demo.openstack.com:8776/v2/%\(tenant_id\)s
+
+[root@controller1 ~]# yum install openstack-cinder -y
+...
+...
+
+[root@controller1 ~]# >/etc/cinder/cinder.conf
+[root@controller1 ~]# openstack-config --set /etc/cinder/cinder.conf DEFAULT my_ip 192.168.56.120
+[root@controller1 ~]# openstack-config --set /etc/cinder/cinder.conf DEFAULT rpc_backend rabbit
+[root@controller1 ~]# openstack-config --set /etc/cinder/cinder.conf DEFAULT control_exchange cinder
+[root@controller1 ~]# openstack-config --set /etc/cinder/cinder.conf DEFAULT osapi_volume_listen_port 8778
+[root@controller1 ~]# openstack-config --set /etc/cinder/cinder.conf DEFAULT auth_strategy keystone
+[root@controller1 ~]# openstack-config --set /etc/cinder/cinder.conf DEFAULT glance_api_servers http://demo.openstack.com:9292
+[root@controller1 ~]# openstack-config --set /etc/cinder/cinder.conf DEFAULT glance_api_version 2
+[root@controller1 ~]# openstack-config --set /etc/cinder/cinder.conf DEFAULT enable_v1_api True
+[root@controller1 ~]# openstack-config --set /etc/cinder/cinder.conf DEFAULT enable_v2_api True
+[root@controller1 ~]# openstack-config --set /etc/cinder/cinder.conf DEFAULT enable_v3_api True
+[root@controller1 ~]# openstack-config --set /etc/cinder/cinder.conf DEFAULT storage_availability_zone nova
+[root@controller1 ~]# openstack-config --set /etc/cinder/cinder.conf DEFAULT default_availability_zone nova
+[root@controller1 ~]# openstack-config --set /etc/cinder/cinder.conf DEFAULT service_down_time 120
+[root@controller1 ~]# openstack-config --set /etc/cinder/cinder.conf DEFAULT report_interval 10
+[root@controller1 ~]# openstack-config --set /etc/cinder/cinder.conf DEFAULT osapi_volume_workers 4
+[root@controller1 ~]# openstack-config --set /etc/cinder/cinder.conf DEFAULT os_region_name RegionOne
+[root@controller1 ~]# openstack-config --set /etc/cinder/cinder.conf DEFAULT api_paste_config /etc/cinder/api-paste.ini 
+[root@controller1 ~]# openstack-config --set /etc/cinder/cinder.conf database connection mysql+pymysql://cinder:password@demo.openstack.com/cinder
+[root@controller1 ~]# openstack-config --set /etc/cinder/cinder.conf database idel_timeout 3600
+[root@controller1 ~]# openstack-config --set /etc/cinder/cinder.conf database max_pool_size 30
+[root@controller1 ~]# openstack-config --set /etc/cinder/cinder.conf database max_retries -1
+[root@controller1 ~]# openstack-config --set /etc/cinder/cinder.conf database max_overflow 60
+[root@controller1 ~]# openstack-config --set /etc/cinder/cinder.conf oslo_messaging_rabbit rabbit_host 192.168.56.120
+[root@controller1 ~]# openstack-config --set /etc/cinder/cinder.conf oslo_messaging_rabbit rabbit_port 5672
+[root@controller1 ~]# openstack-config --set /etc/cinder/cinder.conf oslo_messaging_rabbit rabbit_userid openstack
+[root@controller1 ~]# openstack-config --set /etc/cinder/cinder.conf oslo_messaging_rabbit rabbit_password password
+[root@controller1 ~]# openstack-config --set /etc/cinder/cinder.conf oslo_messaging_rabbit rabbit_use_ssl false
+[root@controller1 ~]# openstack-config --set /etc/cinder/cinder.conf oslo_messaging_rabbit rabbit_ha_queues True
+[root@controller1 ~]# openstack-config --set /etc/cinder/cinder.conf oslo_messaging_rabbit rabbit_retry_interval 1
+[root@controller1 ~]# openstack-config --set /etc/cinder/cinder.conf oslo_messaging_rabbit rabbit_retry_backoff 2
+[root@controller1 ~]# openstack-config --set /etc/cinder/cinder.conf oslo_messaging_rabbit rabbit_max_retries 0
+[root@controller1 ~]# openstack-config --set /etc/cinder/cinder.conf oslo_messaging_rabbit amqp_durable_queues false
+[root@controller1 ~]# openstack-config --set /etc/cinder/cinder.conf keystone_authtoken auth_uri http://demo.openstack.com:5000
+[root@controller1 ~]# openstack-config --set /etc/cinder/cinder.conf keystone_authtoken auth_url http://demo.openstack.com:35357
+[root@controller1 ~]# openstack-config --set /etc/cinder/cinder.conf keystone_authtoken memcached_servers controller1:11211,controller2:11211,controller3:11211
+[root@controller1 ~]# openstack-config --set /etc/cinder/cinder.conf keystone_authtoken auth_type password
+[root@controller1 ~]# openstack-config --set /etc/cinder/cinder.conf keystone_authtoken project_domain_name default
+[root@controller1 ~]# openstack-config --set /etc/cinder/cinder.conf keystone_authtoken user_domain_name default
+[root@controller1 ~]# openstack-config --set /etc/cinder/cinder.conf keystone_authtoken username cinder
+[root@controller1 ~]# openstack-config --set /etc/cinder/cinder.conf keystone_authtoken password password
+[root@controller1 ~]# openstack-config --set /etc/cinder/cinder.conf oslo_concurrency lock_path /var/lib/nova/tmp
++...+
++...+
+
+[root@controller1 ~]# su -s /bin/sh -c "cinder-manage db sync" cinder
+[root@controller1 ~]# mysql -uroot -p
+MariaDB [(none)]> show databases;
+MariaDB [(none)]> use cinder;
+MariaDB [(none)]> show tables;
+MariaDB [(none)]> exit
+
+[root@controller1 ~]# systemctl enable openstack-cinder-api.service openstack-cinder-scheduler.service
+[root@controller1 ~]# systemctl start openstack-cinder-api.service openstack-cinder-scheduler.service
+[root@controller1 ~]# systemctl status openstack-cinder-api.service openstack-cinder-scheduler.service
+...
+...
+
+[root@controller1 ~]# ssh 9.110.187.135
+
+[root@cinder1 ~]# yum install lvm2 -y
+[root@cinder1 ~]# systemctl enable lvm2-lvmetad.service
+[root@cinder1 ~]# fdisk -l
+[root@cinder1 ~]# pvceate /dev/sdb
+[root@cinder1 ~]# vgcreate cinder-volumes /dev/sdb
+[root@cinder1 ~]# yum install openstack-cinder targetcli python-keystone -y
+[root@cinder1 ~]# >/etc/cinder/cinder.conf
+[root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf DEFAULT rpc_backend rabbit
+[root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf DEFAULT auth_strategy keystone
+[root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf DEFAULT my_ip 192.168.56.135
+[root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf DEFAULT enabled_backends lvm
+[root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf DEFAULT glance_api_servers http://demo.openstack.com:9292
+[root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf DEFAULT glance_api_version 2
+[root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf DEFAULT enable_v1_api True
+[root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf DEFAULT enable_v2_api True
+[root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf DEFAULT enable_v3_api True
+[root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf DEFAULT storage_availability_zone nova
+[root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf DEFAULT default_availability_zone nova
+[root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf DEFAULT service_down_time 120
+[root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf DEFAULT report_interval 10
+[root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf DEFAULT osapi_volume_workers 4
+[root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf DEFAULT os_region_name RegionOne
+[root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf DEFAULT api_paste_config /etc/cinder/api-paste.ini 
+[root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf oslo_messaging_rabbit rabbit_host 9.110.187.128
+[root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf oslo_messaging_rabbit rabbit_port 5672
+[root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf oslo_messaging_rabbit rabbit_userid openstack
+[root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf oslo_messaging_rabbit rabbit_password password
+[root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf oslo_messaging_rabbit rabbit_use_ssl false
+[root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf oslo_messaging_rabbit rabbit_ha_queues True
+[root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf oslo_messaging_rabbit rabbit_retry_interval 1
+[root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf oslo_messaging_rabbit rabbit_retry_backoff 2
+[root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf oslo_messaging_rabbit rabbit_max_retries 0
+[root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf oslo_messaging_rabbit amqp_durable_queues false
+[root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf database connection mysql+pymysql://cinder:password@demo.openstack.com/cinder
+[root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf database idel_timeout 3600
+[root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf database max_pool_size 30
+[root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf database max_retries -1
+[root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf database max_overflow 60
+[root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf keystone_authtoken auth_uri http://demo.openstack.com:5000
+[root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf keystone_authtoken auth_url http://demo.openstack.com:35357
+[root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf keystone_authtoken memcached_servers controller1:11211,controller2:11211,controller3:11211
+[root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf keystone_authtoken auth_type password
+[root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf keystone_authtoken project_domain_name default
+[root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf keystone_authtoken user_domain_name default
+[root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf keystone_authtoken username cinder
+[root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf keystone_authtoken password password
+[root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf lvm volume_driver cinder.volume.drivers.lvm.LVMVolumeDriver
+[root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf lvm volume_group cinder-volumes 
+[root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf lvm iscsi_protocol iscsi 
+[root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf lvm iscsi_helper lioadm
+[root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf oslo_concurrency lock_path /var/lib/cinder/tmp
+[root@cinder1 ~]# vim /etc/cinder/cinder.conf
+
+
 - install & config neutron;
 - install Dashboard;
 - add Serv & Res to Pacemaker;
