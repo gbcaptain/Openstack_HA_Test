@@ -985,6 +985,7 @@ MariaDB [(none)]> exit
 
 [root@controller1 ~]# ssh 9.110.187.135
 
+===
 [root@cinder1 ~]# yum install lvm2 -y
 [root@cinder1 ~]# systemctl enable lvm2-lvmetad.service
 [root@cinder1 ~]# fdisk -l
@@ -1029,6 +1030,7 @@ MariaDB [(none)]> exit
 [root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf keystone_authtoken auth_type password
 [root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf keystone_authtoken project_domain_name default
 [root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf keystone_authtoken user_domain_name default
+[root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf keystone_authtoken project_name service
 [root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf keystone_authtoken username cinder
 [root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf keystone_authtoken password password
 [root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf lvm volume_driver cinder.volume.drivers.lvm.LVMVolumeDriver
@@ -1037,6 +1039,13 @@ MariaDB [(none)]> exit
 [root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf lvm iscsi_helper lioadm
 [root@cinder1 ~]# openstack-config --set /etc/cinder/cinder.conf oslo_concurrency lock_path /var/lib/cinder/tmp
 [root@cinder1 ~]# vim /etc/cinder/cinder.conf
+[root@cinder1 ~]# systemctl enable openstack-cinder-volume.service target.service
+[root@cinder1 ~]# systemctl start openstack-cinder-volume.service target.service
+[root@cinder1 ~]# systemctl status openstack-cinder-volume.service target.service
+===
+
+[root@controller1 ~]# source /root/admin-openrc
+[root@controller1 ~]# cinder service-list
 
 
 - install & config neutron;
