@@ -526,6 +526,12 @@ baseurl = https://buildlogs.centos.org/centos/7/cloud/x86_64/openstack-mitaka/
 gpgcheck = 0
 enabled = 1
 
+[root@controller1 ~]# scp /etc/yum.repos.d/openstack-mitaka.repo controller2:/etc/yum.repos.d/openstack-mitaka.repo 
+[root@controller1 ~]# scp /etc/yum.repos.d/openstack-mitaka.repo controller3:/etc/yum.repos.d/openstack-mitaka.repo
+
+[root@controller1 ~]# yum clean all
+[root@controller1 ~]# yum makecache
+
 [root@controller1 ~]# mysql -uroot -p
 MariaDB [(none)]> CREATE DATABASE keystone;
 MariaDB [(none)]> GRANT ALL PRIVILEGES ON keystone.* TO 'keystone'@'localhost' IDENTIFIED BY 'password';
