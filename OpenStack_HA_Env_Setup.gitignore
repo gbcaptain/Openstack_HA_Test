@@ -248,7 +248,7 @@ backend stats-back
 # Listen webfarm
 #---------------------------------------------------------------------
 listen RabbitMQ-Server-Cluster
-    bind 9.110.187.128:56720
+    bind 192.168.56.120:56720
     mode tcp
     balance roundrobin
     option tcpka
@@ -257,7 +257,7 @@ listen RabbitMQ-Server-Cluster
     server controller3 controller3:5672 check inter 5s rise 2 fall 3
 
 listen RabbitMQ-Web
-    bind 9.110.187.128:15673
+    bind 192.168.56.120:15673
     mode tcp
     balance roundrobin
     option tcpka
@@ -266,7 +266,7 @@ listen RabbitMQ-Web
     server controller3 controller3:15672 check inter 5s rise 2 fall 3
 
 listen Galera-Cluster
-    bind 192.168.56.128:3306
+    bind 192.168.56.120:3306
     balance leastconn
     mode tcp
     option httpchk
@@ -275,7 +275,7 @@ listen Galera-Cluster
     server controller3  controller3:3306 check port 9200 inter 2000 rise 2 fall 3
 
 listen keystone_public_internal_cluster
-    bind 192.168.56.128:5000
+    bind 192.168.56.120:5000
     balance  source
     option  tcpka
     option  httpchk
@@ -285,7 +285,7 @@ listen keystone_public_internal_cluster
     server controller3 controller3:5000 check inter 2000 rise 2 fall 5
 
 listen dashboard_cluster
-  bind 192.168.56.128:80
+  bind 192.168.56.120:80
   balance  source
   option  tcpka
   option  tcplog
@@ -295,7 +295,7 @@ listen dashboard_cluster
   server controller3 controller3:8080 check inter 2000 rise 2 fall 5
 
 listen keystone_admin_cluster
-    bind 192.168.56.128:35357
+    bind 192.168.56.120:35357
     balance source
     option  tcpka
     option  httpchk
@@ -305,7 +305,7 @@ listen keystone_admin_cluster
     server controller3  controller3:35358 check inter 2000 rise 2 fall 5
 
 listen glance_api_cluster
-  bind 192.168.56.128:9292
+  bind 192.168.56.120:9292
   balance  source
   option  tcpka
   option  httpchk
@@ -315,7 +315,7 @@ listen glance_api_cluster
   server controller3 controller3:9292 check inter 2000 rise 2 fall 5
 
 listen cinder_api_cluster
-  bind 192.168.56.128:8776
+  bind 192.168.56.120:8776
   balance  source
   option  tcpka
   option  httpchk
@@ -325,7 +325,7 @@ listen cinder_api_cluster
   server controller3 controller3:8778 check inter 2000 rise 2 fall 5
 
 listen nova_vncproxy_cluster
-  bind 192.168.56.128:6080
+  bind 192.168.56.120:6080
   balance  source
   option  tcpka
   option  tcplog
@@ -334,7 +334,7 @@ listen nova_vncproxy_cluster
   server controller3 controller3:6081 check inter 2000 rise 2 fall 5
 
 listen neutron_api_cluster
-  bind 192.168.56.128:9696
+  bind 192.168.56.120:9696
   balance  source
   option  tcpka
   option  httpchk
