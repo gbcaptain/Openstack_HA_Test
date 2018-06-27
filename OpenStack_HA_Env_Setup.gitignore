@@ -518,6 +518,14 @@ mysqlchk    9200/tcp    # mysqlchk
 
 
 - install & config Keystone;
+[root@controller1 ~]# cd /etc/yum.repos.d
+[root@controller1 ~]# vim openstack-mitaka.repo
+[centos-openstack-mitaka]
+name = CentOS-7 - OpenStack mitaka
+baseurl = https://buildlogs.centos.org/centos/7/cloud/x86_64/openstack-mitaka/
+gpgcheck = 0
+enabled = 1
+
 [root@controller1 ~]# mysql -uroot -p
 MariaDB [(none)]> CREATE DATABASE keystone;
 MariaDB [(none)]> GRANT ALL PRIVILEGES ON keystone.* TO 'keystone'@'localhost' IDENTIFIED BY 'password';
