@@ -622,7 +622,7 @@ Listen 35358
 [root@controller1 ~]# scp /etc/httpd/conf.d/wsgi-keystone.conf controller2:/etc/httpd/conf.d/wsgi-keystone.conf
 [root@controller1 ~]# scp /etc/httpd/conf.d/wsgi-keystone.conf controller3:/etc/httpd/conf.d/wsgi-keystone.conf
 
-[root@controller1 ~]# su - /bin/sh -c "keystone-manage db_sync" keystone
+[root@controller1 ~]# su -s /bin/sh -c "keystone-manage db_sync" keystone
 
 [root@controller1 ~]# cd /var/log/keystone/
 [root@controller1 ~]# vim keystone.log
