@@ -14,7 +14,7 @@ baseurl = http://yum.mariadb.org/10.3.7/centos7-amd64/
 enabled = 1
 gpgcheck = 0
 
-[root@controller1 ~]# scp /etc/yum.repos.d/mariadb.repo controller2:/etc/yum.repos.d/mariadb.repo 
+[root@controller1 ~]# scp /etc/yum.repos.d/mariadb.repo controller2:/etc/yum.repos.d/mariadb.repo
 [root@controller1 ~]# scp /etc/yum.repos.d/mariadb.repo controller3:/etc/yum.repos.d/mariadb.repo
 
 [root@controller1 ~]# yum clean all
@@ -94,7 +94,7 @@ http://[controller1_public_ip:15672]
 [root@controller1 ~]# vim ha-clustering.repo
 [network_ha-clustering_Stable]
 name = Stable High Availability/Clustering packages (CentOS_CentOS-7)
-type = rpm-md 
+type = rpm-md
 baseurl = http://download.opensuse.org/repositories/network:/ha-clustering:/Stable/CentOS_CentOS-7/
 gpgcheck = 1
 gpgkey = http://download.opensuse.org/repositories/network:/ha-clustering:/Stable/CentOS_CentOS-7/repodata/repomd.xml.key
@@ -118,7 +118,7 @@ totem {
     version: 2
     secauth: off
     cluster_name: openstack-cluster
-    transport: udpu 
+    transport: udpu
 }
 
 nodelist {
@@ -149,7 +149,7 @@ logging {
 [root@controller1 ~]# scp /etc/corosync/corosync.conf controller2:/etc/corosync/corosync.conf
 [root@controller1 ~]# scp /etc/corosync/corosync.conf controller3:/etc/corosync/corosync.conf
 
-[root@controller1 ~]# ssh-keygen -t rsa 
+[root@controller1 ~]# ssh-keygen -t rsa
 ...
 ...
 [root@controller1 ~]# scp /root/.ssh/id_rsa.pub 9.110.187.121:~/.ssh/authorized_keys
@@ -191,7 +191,7 @@ local0.* ~
 ...
 [root@controller1 ~]# cd /etc/haproxy/
 [root@controller1 ~]# mv haproxy.cfg haproxy.cfg.orig
-[root@controller1 ~]# vim haproxy.cfg 
+[root@controller1 ~]# vim haproxy.cfg
 #---------------------------------------------------------------------
 # Global settings
 #---------------------------------------------------------------------
@@ -204,7 +204,7 @@ local0.* ~
   group  haproxy
   user  haproxy
 #---------------------------------------------------------------------
-# common defaults that all the 'listen' and 'backend' sections will 
+# common defaults that all the 'listen' and 'backend' sections will
 # use if not designated in their block
 #---------------------------------------------------------------------
 defaults
@@ -224,7 +224,7 @@ frontend stats-frontend
     mode http
     default_backend stats-back
 
-backend stats-back 
+backend stats-back
     mode http
     blance source
 
@@ -488,7 +488,7 @@ service mysqlchk
     server = /usr/bin/clustercheck
     log_on_failure += USERID
     only_from = 0.0.0.0/0
-    # recommended to put the IPs that need 
+    # recommended to put the IPs that need
     # to connect exclusively (security purposes)
     per_source = UNLIMITED
 }
@@ -527,7 +527,7 @@ MariaDB [(none)]> exit
 
 [root@controller1 ~]# openssl rand -hex 10
 [root@controller1 ~]# ADMIN_TOKEN=[generated_token]
-[root@controller1 ~]# mv /etc/keystone/keystone.conf /etc/keystone/keystone.conf.bak 
+[root@controller1 ~]# mv /etc/keystone/keystone.conf /etc/keystone/keystone.conf.bak
 [root@controller1 ~]# vim /etc/keystone/keystone.conf
 [default]
 verbose =  True
@@ -544,7 +544,7 @@ servers = controller1:11211,controller2:11211,controller3:11211
 
 [token]
 caching = True
-provider = keystone.token.providers.uuid.Provider 
+provider = keystone.token.providers.uuid.Provider
 driver = keystone.token.persistence.backends.memcache.Token
 token = keystone.auth.plugins.token.Token
 
@@ -668,7 +668,7 @@ export OS_AUTH_URL=http://demo.openstack.com:5000
 [root@controller1 keystone]# openstack user create --domain default demo --password password
 [root@controller1 keystone]# openstack role create user
 [root@controller1 keystone]# openstack role add --project demo --user demo user
-[root@controller1 keystone]# unset OS_TOKEN OS_URL 
+[root@controller1 keystone]# unset OS_TOKEN OS_URL
 [root@controller1 keystone]# openstack --os-auth-url http://9.110.187.128:35357/v3 --os-project-domain-name default --os-user-domain-name default --os-project-name admin --os-username admin token issue --os-password password
 [root@controller1 keystone]# openstack --os-auth-url http://9.110.187.128:5000/v3 --os-project-domain-name default --os-user-domain-name default --os-project-name demo --os-username demo token issue --os-password password
 [root@controller1 keystone]# vim /root/demo-openrc
@@ -713,4 +713,3 @@ public : 9.110.187.0/24
 admin : 192.168.56.0/24
 private：192.168.57.0/24
 mapping network port：eno67109408
-
