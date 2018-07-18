@@ -248,7 +248,7 @@ backend stats-back
 # Listen webfarm
 #---------------------------------------------------------------------
 listen RabbitMQ-Server-Cluster
-    bind 192.168.56.120:56720
+    bind 192.168.56.128:56720
     mode tcp
     balance roundrobin
     option tcpka
@@ -257,7 +257,7 @@ listen RabbitMQ-Server-Cluster
     server controller3 controller3:5672 check inter 5s rise 2 fall 3
 
 listen RabbitMQ-Web
-    bind 192.168.56.120:15673
+    bind 192.168.56.128:15673
     mode tcp
     balance roundrobin
     option tcpka
@@ -266,13 +266,13 @@ listen RabbitMQ-Web
     server controller3 controller3:15672 check inter 5s rise 2 fall 3
 
 listen Galera-Cluster
-    bind 192.168.56.120:3306
+    bind 192.168.56.128:3306
     balance leastconn
     mode tcp
-    option httpchk
-    server controller1  controller1:3306 check port 9200 inter 2000 rise 2 fall 3
-    server controller2  controller2:3306 check port 9200 inter 2000 rise 2 fall 3
-    server controller3  controller3:3306 check port 9200 inter 2000 rise 2 fall 3
+    option tcpka
+    server controller1  controller1:3306 check weight 1
+    server controller2  controller2:3306 check weight 1
+    server controller3  controller3:3306 check weight 1
 
 listen keystone_public_internal_cluster
     bind 192.168.56.120:5000
@@ -554,7 +554,7 @@ public_bind_host = 192.168.56.120
 admin_bind_host = 192.168.56.120
 
 [database]
-connection = mysql://keystone:password@demon.openstack.com/keystone
+connection = mysql://keystone:password@demo.openstack.com/keystone
 
 [memcache]
 servers = controller1:11211,controller2:11211,controller3:11211
@@ -635,7 +635,7 @@ MariaDB [(none)]> exit
 
 [root@controller1 keystone]# crm
 crm(live)# configure
-crm(live)configure# primitive vip ocf:hearbeat:IPaddr2 params ip=9.110.187.128 cidr_netmask=24 nic=ens160 op start interval=0s timeout=20s op stop interval=0s timeout=20s op monitor interval=30s meta priority=100
+crm(live)configure# primitive vip IPaddr2 params ip=192.168.56.128 cidr_netmask=24 nic=enp0s8 op start interval=0s timeout=20s op stop interval=0s timeout=20s op monitor interval=30s meta priority=100
 crm(live)configure# show
 crm(live)configure# exit
 
@@ -1395,7 +1395,7 @@ MariaDB [(none)]> exit
 1 x Cinder Node (8G 400GB -)
     192.168.56.135 cinder1 cinder1.test.com
 
-9.110.187.128 demo.openstack.com
+192.168.56.128 demo.openstack.com
 
 # Network Config
 public : 9.110.187.0/24
