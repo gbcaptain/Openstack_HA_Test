@@ -644,7 +644,7 @@ crm(live)# status
 crm(live)# exit
 
 [root@controller1 keystone]# ping demo.openstack.com
-[root@controller1 ~]# su - /bin/sh -c "keystone-manage db_sync" keystone
+[root@controller1 ~]# su -s /bin/sh -c "keystone-manage db_sync" keystone
 
 [root@controller1 ~]# mysql -uroot -p
 MariaDB [(none)]> show databases;
